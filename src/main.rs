@@ -1,5 +1,9 @@
 fn main() {
     let (width, height, panes) = gather_informations();
+    if panes.len() < 2 {
+        return;
+    }
+
     let layout = calc_layout(width, height, &panes);
     select_layout(layout);
     swap_pane(&panes);
