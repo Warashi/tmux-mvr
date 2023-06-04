@@ -1,11 +1,45 @@
 fn main() {
     let (width, height, panes) = gather_informations();
-    let layout = calc_layout(width, height, panes);
+    let layout = calc_layout(width, height, &panes);
     select_layout(layout);
+    swap_pane(&panes);
+}
+
+fn get_active(panes: &Vec<(i64, bool)>) -> i64 {
+    return panes
+        .iter()
+        .find(|(_, active)| *active)
+        .map(|(id, _)| *id)
+        .unwrap();
+}
+
+fn get_right(panes: &Vec<(i64, bool)>) -> i64 {
+    let mut panes = panes.to_vec();
+    panes.sort_by_key(|(idx, _)| *idx);
+    return panes.last().map(|(idx, _)| *idx).unwrap();
+}
+
+fn swap_pane(panes: &Vec<(i64, bool)>) {
+    use tmux_interface::{SelectPane, SwapPane, Tmux};
+    let mut panes = panes.to_vec();
+    panes.sort_by_key(|(idx, _)| *idx);
+    let active = format!("{}", get_active(&panes));
+    let right = format!("{}", get_right(&panes));
+
+    let swap_pane = SwapPane::new();
+    let swap_pane = swap_pane.src_pane(active);
+    let swap_pane = swap_pane.dst_pane(right.clone());
+
+    let select_pane = SelectPane::new();
+    let select_pane = select_pane.target_pane(right.clone());
+    Tmux::with_command(swap_pane)
+        .add_command(select_pane)
+        .output()
+        .unwrap();
 }
 
 fn select_layout(layout: String) {
-    use tmux_interface::{SelectLayout,Tmux};
+    use tmux_interface::{SelectLayout, Tmux};
     let select_layout = SelectLayout::new();
     let select_layout = select_layout.layout_name(layout);
     Tmux::with_command(select_layout).output().unwrap();
@@ -28,7 +62,7 @@ fn gather_informations() -> (i64, i64, Vec<(i64, bool)>) {
         .collect();
     let (window_width, window_height) = (window_info[0], window_info[1]);
 
-    let list_panes = ListPanes::new().format("#{pane_id},#{pane_active}");
+    let list_panes = ListPanes::new().format("#{pane_index},#{pane_active}");
     let panes = Tmux::with_command(list_panes).output().unwrap();
     let panes = String::from_utf8(panes.stdout()).unwrap();
     let panes: Vec<_> = panes
@@ -50,14 +84,10 @@ fn gather_informations() -> (i64, i64, Vec<(i64, bool)>) {
     return (window_width, window_height, panes);
 }
 
-fn calc_layout(window_width: i64, window_height: i64, panes: Vec<(i64, bool)>) -> String {
+fn calc_layout(window_width: i64, window_height: i64, panes: &Vec<(i64, bool)>) -> String {
     use tmux_interface::LayoutChecksum;
 
-    let active_pane = panes
-        .iter()
-        .find(|(_, active)| *active)
-        .map(|(id, _)| id)
-        .unwrap();
+    let active_pane = get_active(&panes);
     let pane_width = window_width / 2;
     let left_width = if window_width % 2 == 0 {
         pane_width - 1
