@@ -1,13 +1,14 @@
 fn main() {
     let (width, height, panes) = gather_informations();
     let layout = calc_layout(width, height, panes);
-    println!("{}", layout)
+    select_layout(layout);
 }
 
 fn select_layout(layout: String) {
-    use tmux_interface::SelectLayout;
+    use tmux_interface::{SelectLayout,Tmux};
     let select_layout = SelectLayout::new();
     let select_layout = select_layout.layout_name(layout);
+    Tmux::with_command(select_layout).output().unwrap();
 }
 
 fn gather_informations() -> (i64, i64, Vec<(i64, bool)>) {
