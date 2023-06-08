@@ -91,7 +91,6 @@ fn gather_informations() -> (i64, i64, Vec<(i64, bool)>) {
 fn calc_layout(window_width: i64, window_height: i64, panes: &Vec<(i64, bool)>) -> String {
     use tmux_interface::LayoutChecksum;
 
-    let active_pane = get_active(&panes);
     let pane_width = window_width / 2;
     let left_width = if window_width % 2 == 0 {
         pane_width - 1
@@ -99,35 +98,28 @@ fn calc_layout(window_width: i64, window_height: i64, panes: &Vec<(i64, bool)>) 
         pane_width
     };
     let right_width = pane_width;
-    let right_pane_count = panes.len() as i64 - 1;
-    let right_pane_height_sum = window_height - right_pane_count + 1;
-    let right_pane_height = right_pane_height_sum / right_pane_count;
-    let right_pane_additional_height = right_pane_height_sum - right_pane_height * right_pane_count;
+    let left_pane_count = panes.len() as i64 - 1;
+    let left_pane_height_sum = window_height - left_pane_count + 1;
+    let left_pane_height = left_pane_height_sum / left_pane_count;
+    let left_pane_additional_height = left_pane_height_sum - left_pane_height * left_pane_count;
 
     let window = format!("{}x{},0,0", window_width, window_height);
-    let right = format!(
-        "{}x{},{},0,{}",
-        right_width, window_height, right_width, active_pane,
-    );
+    let right = format!("{}x{},{},0", right_width, window_height, right_width,);
     let left_parent = format!("{}x{},0,0", left_width, window_height);
 
-    let left_children: Vec<_> = panes
-        .iter()
-        .filter(|(_, active)| !*active)
-        .enumerate()
-        .map(|(i, (id, _))| {
-            let i = i as i64;
-            let pane_height = if i < right_pane_additional_height {
-                right_pane_height + 1
+    let left_children: Vec<_> = (0..left_pane_count)
+        .map(|i| {
+            let pane_height = if i < left_pane_additional_height {
+                left_pane_height + 1
             } else {
-                right_pane_height
+                left_pane_height
             };
-            let pane_offset = if i < right_pane_additional_height {
-                i * right_pane_height + i
+            let pane_offset = if i < left_pane_additional_height {
+                i * left_pane_height + i
             } else {
-                i * right_pane_count + right_pane_additional_height
+                i * left_pane_count + left_pane_additional_height
             };
-            format!("{}x{},0,{},{}", left_width, pane_height, pane_offset, id)
+            return format!("{}x{},0,{}", left_width, pane_height, pane_offset);
         })
         .collect();
     let left = format!("{}[{}]", left_parent, left_children.join(","));
