@@ -1,1 +1,8 @@
+# project files
+.pre-commit-config.yaml
+
+# Added by cargo
 /target
+
+# nix files
+/result
