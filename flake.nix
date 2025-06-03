@@ -89,6 +89,10 @@
             ];
             shellHook = config.pre-commit.installationScript;
           };
+
+          packages.default = pkgs.callPackage ./nix/tmux-mvr.nix {
+            toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+          };
         };
     };
 }
